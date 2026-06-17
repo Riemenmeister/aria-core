@@ -4,3 +4,6 @@ certs/*.key
 certs/*.crt
 certs/openssl.cnf
 logs/
+memory/
+*.pyc
+__pycache__/

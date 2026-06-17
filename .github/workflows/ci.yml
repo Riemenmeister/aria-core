@@ -29,6 +29,9 @@ jobs:
       - name: Run plaintext smoke test
         run: python tests/smoke_test.py
 
+      - name: Run knowledge bridge tests
+        run: python tests/knowledge_test.py
+
       - name: Ensure OpenSSL (Ubuntu)
         if: runner.os == 'Linux'
         run: |
@@ -70,3 +73,6 @@ jobs:
 
       - name: Run plaintext smoke test (Windows)
         run: python tests/smoke_test.py
+
+      - name: Run knowledge bridge tests (Windows)
+        run: python tests/knowledge_test.py
