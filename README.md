@@ -71,10 +71,11 @@ $writer.WriteLine('Hello from test client')
 $client.Close()
 ```
 
-Next steps
-- Add a simple smoke test script under `tests/`.
-- Add a Dockerfile for container runs.
-- Add optional TLS support and Windows service instructions.
+Implemented capabilities
+- Simple smoke test script under `tests/`.
+- Docker Compose support for local container runs.
+- Optional TLS support with self-signed certificate helpers.
+- Windows service helper integration via NSSM.
 
 Windows Service (NSSM)
 ----------------------
@@ -107,6 +108,43 @@ Notes:
 Notes
 - `aria_listener.py` uses only Python standard library modules.
 - The listener writes logs to both console and the configured log file.
+
+Aria Knowledge Bridge
+---------------------
+
+`aria_knowledge.py` connects Aria to Wikipedia and stores mentor observations from
+Gemini or other sources in a local JSONL memory file.
+
+Wikipedia summaries use the public Wikipedia REST API. No API key is required:
+
+```powershell
+py aria_knowledge.py wiki "Kuenstliche Intelligenz" --lang de
+```
+
+Search Wikipedia:
+
+```powershell
+py aria_knowledge.py search "TCP Server" --lang de --limit 3
+```
+
+Store a Gemini mentor observation:
+
+```powershell
+py aria_knowledge.py learn "Gemini empfiehlt: Aussagen mit mehreren Quellen vergleichen." --source gemini
+```
+
+Review recent mentor observations:
+
+```powershell
+py aria_knowledge.py memory --limit 5
+```
+
+Configuration:
+- `ARIA_WIKI_LANG` - default Wikipedia language code (default: `de`)
+- `ARIA_WIKI_USER_AGENT` - custom Wikipedia User-Agent string
+- `ARIA_MENTOR_MEMORY` - mentor memory JSONL path (default: `memory/gemini_mentor.jsonl`)
+
+The local `memory/` folder is ignored by Git so mentor notes stay local by default.
 
 Docker
 ------

@@ -1,12 +1,15 @@
 import os
 import socket
+import sys
 import threading
 import time
 import tempfile
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
 import aria_listener
 
-TEST_MESSAGE = 'Smoke test message — ✓'
+TEST_MESSAGE = 'Smoke test message - OK'
 
 
 def find_free_port():
