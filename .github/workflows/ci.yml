@@ -29,6 +29,9 @@ jobs:
       - name: Run plaintext smoke test
         run: python tests/smoke_test.py
 
+      - name: Run event bus tests
+        run: python tests/event_bus_test.py
+
       - name: Run knowledge bridge tests
         run: python tests/knowledge_test.py
 
@@ -73,6 +76,9 @@ jobs:
 
       - name: Run plaintext smoke test (Windows)
         run: python tests/smoke_test.py
+
+      - name: Run event bus tests (Windows)
+        run: python tests/event_bus_test.py
 
       - name: Run knowledge bridge tests (Windows)
         run: python tests/knowledge_test.py

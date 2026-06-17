@@ -3,6 +3,18 @@ aria_listener.py
 
 Simple, configurable TCP listener intended for local Aria Live-Core usage.
 
+Release Description
+-------------------
+
+`aria-core` is the foundational software platform for Aria's local bridge between workshop hardware and digital workflows. This release captures the first stable runtime for the listener, voice feedback, and CI-hardened test flow.
+
+Key capabilities:
+- Local TCP listener on port `65432` for low-latency data exchange.
+- Event-driven core architecture using an `EventBus` to decouple audio, logging, and future extensions.
+- Voice feedback through `pyttsx3` and local audio output, including profile-based status and error announcements.
+- Stable smoke-test behavior with voice disabled during CI runs.
+- A secure software baseline stored in GitHub and tagged for reliable versioning.
+
 Features
 - Binds to a configurable host/port and accepts concurrent clients (bounded).
 - Structured logging to console and a log file.
@@ -236,3 +248,19 @@ docker compose up --build aria-listener
 ```
 
 If you prefer the files named `server.crt`/`server.key`, copy or rename them inside `./certs` accordingly.
+
+## v0.2.1 - Voice Feedback Stabilization
+
+### Added
+- Added voice profiles for info, warning, critical, and success messages.
+- Added `force=True` support for critical real-time audio alerts.
+
+### Fixed
+- Moved startup voice output until after the TCP socket is listening.
+- Disabled voice output in automated smoke tests to avoid TTS timing issues.
+- Prevented repeated identical events from spamming audio output through cooldowns.
+
+### Verified
+- CI passed before tagging.
+- Local listener startup, repeated disconnects, and critical bind-error paths were tested.
+

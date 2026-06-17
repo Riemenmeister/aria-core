@@ -7,7 +7,8 @@ import ssl
 import threading
 from concurrent.futures import ThreadPoolExecutor, wait
 
-from aria_voice_notifier import initialize_notifier, aria_speak, VoiceProfile
+from aria_events import EventType, AriaEvent, publish
+from aria_voice_notifier import initialize_notifier, VoiceProfile
 
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 65432
@@ -51,7 +52,7 @@ def handle_shutdown(signum, frame):
 def handle_client(conn, addr):
     with conn:
         logger.info('Live-Kopplung mit Gerät hergestellt: %s', addr)
-        aria_speak("Uplink etabliert.", profile=VoiceProfile.SUCCESS)
+        publish(AriaEvent(event_type=EventType.CLIENT_CONNECTED, payload={'addr': addr, 'message': 'Uplink etabliert.'}))
         conn.settimeout(1.0)
         while not shutdown_event.is_set():
             try:
@@ -60,12 +61,12 @@ def handle_client(conn, addr):
                 continue
             except OSError as exc:
                 logger.exception('Fehler beim Lesen von Daten: %s', exc)
-                aria_speak("Achtung. Störung im Datenstrom.", profile=VoiceProfile.WARNING)
+                publish(AriaEvent(event_type=EventType.STREAM_ERROR, payload={'addr': addr, 'message': 'Achtung. Störung im Datenstrom.'}))
                 break
 
             if not data:
                 logger.info('Verbindung vom Client getrennt: %s', addr)
-                aria_speak("Verbindung getrennt.", profile=VoiceProfile.INFO)
+                publish(AriaEvent(event_type=EventType.CLIENT_DISCONNECTED, payload={'addr': addr, 'message': 'Verbindung getrennt.'}))
                 break
 
             try:
@@ -73,7 +74,7 @@ def handle_client(conn, addr):
                 logger.info('Live-Sensor-Stream [%s]: %s', addr, message)
             except Exception as decode_error:
                 logger.exception('Fehler beim Dekodieren von Daten: %s', decode_error)
-                aria_speak("Achtung. Dekodierungsfehler im Datenstrom.", profile=VoiceProfile.WARNING)
+                publish(AriaEvent(event_type=EventType.STREAM_ERROR, payload={'addr': addr, 'message': 'Achtung. Dekodierungsfehler im Datenstrom.'}))
                 break
 
     logger.info('Client-Handler beendet: %s', addr)
@@ -95,17 +96,17 @@ def run_server(host, port, max_clients, ssl_context=None):
         with ThreadPoolExecutor(max_workers=max_clients) as executor:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                
+
                 try:
                     server_socket.bind((host, port))
                 except OSError as bind_error:
                     logger.exception('Fehler beim Binden an %s:%d: %s', host, port, bind_error)
-                    aria_speak("Kritischer Fehler. Port bereits in Verwendung.", profile=VoiceProfile.CRITICAL, force=True)
+                    publish(AriaEvent(event_type=EventType.CRITICAL_ERROR, payload={'message': 'Kritischer Fehler. Port bereits in Verwendung.'}))
                     raise
-                
+
                 server_socket.listen()
                 server_socket.settimeout(1.0)
-                aria_speak("Aria Core online. Horche auf Netzwerk-Port.", profile=VoiceProfile.INFO)
+                publish(AriaEvent(event_type=EventType.CORE_STARTED, payload={'message': 'Aria Core online. Horche auf Netzwerk-Port.'}))
 
                 while not shutdown_event.is_set():
                     try:
@@ -117,7 +118,7 @@ def run_server(host, port, max_clients, ssl_context=None):
                         if shutdown_event.is_set():
                             break
                         logger.exception('Socket error while accepting connection: %s', exc)
-                        aria_speak("Fehler beim Akzeptieren der Verbindung.", profile=VoiceProfile.WARNING)
+                        publish(AriaEvent(event_type=EventType.STREAM_ERROR, payload={'message': 'Fehler beim Akzeptieren der Verbindung.'}))
                         break
 
                     cleanup_futures()
@@ -126,7 +127,7 @@ def run_server(host, port, max_clients, ssl_context=None):
 
                     if active_clients >= max_clients:
                         logger.warning('Maximale Client-Anzahl erreicht (%d), neue Verbindung wird verworfen: %s', max_clients, addr)
-                        aria_speak("Maximum Clients erreicht.", profile=VoiceProfile.WARNING)
+                        publish(AriaEvent(event_type=EventType.STREAM_ERROR, payload={'message': 'Maximum Clients erreicht.'}))
                         conn.close()
                         continue
 
@@ -136,7 +137,7 @@ def run_server(host, port, max_clients, ssl_context=None):
                             conn = ssl_context.wrap_socket(conn, server_side=True)
                         except Exception as exc:
                             logger.exception('Fehler beim TLS-Handshake mit %s: %s', addr, exc)
-                            aria_speak("Fehler beim Sicherheits-Handshake.", profile=VoiceProfile.WARNING)
+                            publish(AriaEvent(event_type=EventType.STREAM_ERROR, payload={'message': 'Fehler beim Sicherheits-Handshake.'}))
                             try:
                                 conn.close()
                             except Exception:
@@ -153,12 +154,12 @@ def run_server(host, port, max_clients, ssl_context=None):
                 if client_futures:
                     wait(client_futures, timeout=5.0)
 
-        logger.info('Server wurde sauber beendet.')
-        aria_speak("Aria Core beendet.", profile=VoiceProfile.SUCCESS)
-        
+            logger.info('Server wurde sauber beendet.')
+        publish(AriaEvent(event_type=EventType.CORE_STARTED, payload={'message': 'Aria Core beendet.'}))
+
     except Exception as system_error:
         logger.exception('Kritischer Systemfehler: %s', system_error)
-        aria_speak("Kritischer Systemfehler. Überprüfe das Terminal.", profile=VoiceProfile.CRITICAL, force=True)
+        publish(AriaEvent(event_type=EventType.CRITICAL_ERROR, payload={'message': 'Kritischer Systemfehler. Überprüfe das Terminal.'}))
         raise
 
 
@@ -185,7 +186,7 @@ if __name__ == '__main__':
     ssl_ctx = None
     if (args.tls_cert and not args.tls_key) or (args.tls_key and not args.tls_cert):
         logger.error('TLS configuration invalid: both --tls-cert and --tls-key must be provided together (or neither).')
-        aria_speak("Fehler in der TLS-Konfiguration.", profile=VoiceProfile.CRITICAL)
+        publish(AriaEvent(event_type=EventType.CRITICAL_ERROR, payload={'message': 'Fehler in der TLS-Konfiguration.'}))
         raise SystemExit(2)
 
     if args.tls_cert and args.tls_key:
@@ -193,18 +194,18 @@ if __name__ == '__main__':
             ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
             ssl_ctx.load_cert_chain(certfile=args.tls_cert, keyfile=args.tls_key)
             logger.info('TLS aktiviert mit Zertifikat: %s', args.tls_cert)
-            aria_speak("TLS-Sicherheit aktiviert.", profile=VoiceProfile.INFO)
+            publish(AriaEvent(event_type=EventType.CORE_STARTED, payload={'message': 'TLS-Sicherheit aktiviert.'}))
         except Exception:
             logger.exception('Fehler beim Laden des TLS-Zertifikats/Schlüssels.')
-            aria_speak("Fehler beim Laden des TLS-Zertifikats.", profile=VoiceProfile.CRITICAL)
+            publish(AriaEvent(event_type=EventType.CRITICAL_ERROR, payload={'message': 'Fehler beim Laden des TLS-Zertifikats.'}))
             raise
 
     try:
         run_server(args.host, args.port, args.max_clients, ssl_context=ssl_ctx)
     except Exception:
         logger.exception('Unbehandelter Fehler im Server.')
-        aria_speak("Kritischer Systemfehler. Überprüfe das Terminal.", profile=VoiceProfile.CRITICAL)
+        publish(AriaEvent(event_type=EventType.CRITICAL_ERROR, payload={'message': 'Kritischer Systemfehler. Überprüfe das Terminal.'}))
     finally:
         shutdown_event.set()
         logger.info('Aria Live-Core gestoppt.')
-        aria_speak("Aria wird heruntergefahren.", profile=VoiceProfile.SUCCESS)
+        publish(AriaEvent(event_type=EventType.CORE_STARTED, payload={'message': 'Aria wird heruntergefahren.'}))

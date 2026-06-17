@@ -9,6 +9,8 @@ import time
 from enum import Enum
 from typing import Optional, Dict
 
+from aria_events import EventType, AriaEvent, subscribe
+
 try:
     import pyttsx3
     TTS_AVAILABLE = True
@@ -242,3 +244,28 @@ def aria_speak(text: str, profile: VoiceProfile = VoiceProfile.INFO, force: bool
         True if message was spoken, False if rate-limited.
     """
     return get_notifier().speak(text, profile=profile, force=force)
+
+
+def _event_to_voice_profile(event_type: EventType) -> VoiceProfile:
+    return {
+        EventType.CORE_STARTED: VoiceProfile.INFO,
+        EventType.CLIENT_CONNECTED: VoiceProfile.SUCCESS,
+        EventType.CLIENT_DISCONNECTED: VoiceProfile.INFO,
+        EventType.STREAM_ERROR: VoiceProfile.WARNING,
+        EventType.CRITICAL_ERROR: VoiceProfile.CRITICAL,
+    }.get(event_type, VoiceProfile.INFO)
+
+
+def _handle_aria_event(event: AriaEvent) -> None:
+    profile = _event_to_voice_profile(event.event_type)
+    payload_text = event.payload.get('message')
+    if payload_text:
+        get_notifier().speak(payload_text, profile=profile, force=(event.event_type == EventType.CRITICAL_ERROR))
+
+
+# Subscribe as soon as the module is imported
+subscribe(EventType.CORE_STARTED, _handle_aria_event)
+subscribe(EventType.CLIENT_CONNECTED, _handle_aria_event)
+subscribe(EventType.CLIENT_DISCONNECTED, _handle_aria_event)
+subscribe(EventType.STREAM_ERROR, _handle_aria_event)
+subscribe(EventType.CRITICAL_ERROR, _handle_aria_event)
