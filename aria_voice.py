@@ -7,10 +7,15 @@ def initialize_aria():
     
     # Stimmen-Eigenschaften konfigurieren
     voices = engine.getProperty('voices')
-    for voice in voices:
-        if "female" in voice.name.lower() or "zira" in voice.name.lower():
-            engine.setProperty('voice', voice.id)
-            break
+    preferred_voice_index = 2
+
+    if len(voices) > preferred_voice_index:
+        engine.setProperty('voice', voices[preferred_voice_index].id)
+    else:
+        for voice in voices:
+            if "female" in voice.name.lower() or "zira" in voice.name.lower():
+                engine.setProperty('voice', voice.id)
+                break
 
     # Sprechgeschwindigkeit anpassen
     engine.setProperty('rate', 160) 
@@ -30,6 +35,6 @@ if __name__ == "__main__":
     
     aria = initialize_aria()
     
-    first_words = "System online. Audio-Cortex initialisiert. Hallo Andreas. Ich bin bereit."
+    first_words = "Audio-Cortex rekalibriert. Meine neue Stimme ist online, Andreas."
     
     aria_speak(aria, first_words)
