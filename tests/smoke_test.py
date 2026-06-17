@@ -8,6 +8,7 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import aria_listener
+import aria_voice_notifier
 
 TEST_MESSAGE = 'Smoke test message - OK'
 
@@ -33,6 +34,7 @@ def run_smoke_test():
     # configure listener
     aria_listener.shutdown_event.clear()
     aria_listener.configure_logging(log_path)
+    aria_voice_notifier.initialize_notifier(enabled=False)
 
     server_thread = threading.Thread(target=aria_listener.run_server, args=('127.0.0.1', port, 2), daemon=True)
     server_thread.start()

@@ -7,6 +7,8 @@ import ssl
 import threading
 from concurrent.futures import ThreadPoolExecutor, wait
 
+from aria_voice_notifier import initialize_notifier, aria_speak, VoiceProfile
+
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 65432
 DEFAULT_LOG_FILE = 'aria_listener.log'
@@ -49,6 +51,7 @@ def handle_shutdown(signum, frame):
 def handle_client(conn, addr):
     with conn:
         logger.info('Live-Kopplung mit Gerät hergestellt: %s', addr)
+        aria_speak("Uplink etabliert.", profile=VoiceProfile.SUCCESS)
         conn.settimeout(1.0)
         while not shutdown_event.is_set():
             try:
@@ -57,14 +60,21 @@ def handle_client(conn, addr):
                 continue
             except OSError as exc:
                 logger.exception('Fehler beim Lesen von Daten: %s', exc)
+                aria_speak("Achtung. Störung im Datenstrom.", profile=VoiceProfile.WARNING)
                 break
 
             if not data:
                 logger.info('Verbindung vom Client getrennt: %s', addr)
+                aria_speak("Verbindung getrennt.", profile=VoiceProfile.INFO)
                 break
 
-            message = data.decode('utf-8', errors='replace')
-            logger.info('Live-Sensor-Stream [%s]: %s', addr, message)
+            try:
+                message = data.decode('utf-8', errors='replace')
+                logger.info('Live-Sensor-Stream [%s]: %s', addr, message)
+            except Exception as decode_error:
+                logger.exception('Fehler beim Dekodieren von Daten: %s', decode_error)
+                aria_speak("Achtung. Dekodierungsfehler im Datenstrom.", profile=VoiceProfile.WARNING)
+                break
 
     logger.info('Client-Handler beendet: %s', addr)
 
@@ -81,57 +91,75 @@ def run_server(host, port, max_clients, ssl_context=None):
     logger.info('=========================================')
     logger.info(f'Lausche auf Port {port}... Warte auf Werkbank-Kopplung.')
 
-    with ThreadPoolExecutor(max_workers=max_clients) as executor:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-            server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server_socket.bind((host, port))
-            server_socket.listen()
-            server_socket.settimeout(1.0)
-
-            while not shutdown_event.is_set():
+    try:
+        with ThreadPoolExecutor(max_workers=max_clients) as executor:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+                server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                
                 try:
-                    conn, addr = server_socket.accept()
-                except socket.timeout:
-                    cleanup_futures()
-                    continue
-                except OSError as exc:
-                    if shutdown_event.is_set():
-                        break
-                    logger.exception('Socket error while accepting connection: %s', exc)
-                    break
+                    server_socket.bind((host, port))
+                except OSError as bind_error:
+                    logger.exception('Fehler beim Binden an %s:%d: %s', host, port, bind_error)
+                    aria_speak("Kritischer Fehler. Port bereits in Verwendung.", profile=VoiceProfile.CRITICAL, force=True)
+                    raise
+                
+                server_socket.listen()
+                server_socket.settimeout(1.0)
+                aria_speak("Aria Core online. Horche auf Netzwerk-Port.", profile=VoiceProfile.INFO)
 
-                cleanup_futures()
-                with client_futures_lock:
-                    active_clients = len(client_futures)
-
-                if active_clients >= max_clients:
-                    logger.warning('Maximale Client-Anzahl erreicht (%d), neue Verbindung wird verworfen: %s', max_clients, addr)
-                    conn.close()
-                    continue
-
-                # If TLS is enabled, wrap the accepted socket before handing off
-                if ssl_context is not None:
+                while not shutdown_event.is_set():
                     try:
-                        conn = ssl_context.wrap_socket(conn, server_side=True)
-                    except Exception as exc:
-                        logger.exception('Fehler beim TLS-Handshake mit %s: %s', addr, exc)
-                        try:
-                            conn.close()
-                        except Exception:
-                            pass
+                        conn, addr = server_socket.accept()
+                    except socket.timeout:
+                        cleanup_futures()
+                        continue
+                    except OSError as exc:
+                        if shutdown_event.is_set():
+                            break
+                        logger.exception('Socket error while accepting connection: %s', exc)
+                        aria_speak("Fehler beim Akzeptieren der Verbindung.", profile=VoiceProfile.WARNING)
+                        break
+
+                    cleanup_futures()
+                    with client_futures_lock:
+                        active_clients = len(client_futures)
+
+                    if active_clients >= max_clients:
+                        logger.warning('Maximale Client-Anzahl erreicht (%d), neue Verbindung wird verworfen: %s', max_clients, addr)
+                        aria_speak("Maximum Clients erreicht.", profile=VoiceProfile.WARNING)
+                        conn.close()
                         continue
 
-                future = executor.submit(handle_client, conn, addr)
-                with client_futures_lock:
-                    client_futures.add(future)
+                    # If TLS is enabled, wrap the accepted socket before handing off
+                    if ssl_context is not None:
+                        try:
+                            conn = ssl_context.wrap_socket(conn, server_side=True)
+                        except Exception as exc:
+                            logger.exception('Fehler beim TLS-Handshake mit %s: %s', addr, exc)
+                            aria_speak("Fehler beim Sicherheits-Handshake.", profile=VoiceProfile.WARNING)
+                            try:
+                                conn.close()
+                            except Exception:
+                                pass
+                            continue
 
-        logger.info('Warte auf aktive Client-Verbindungen...')
-        cleanup_futures()
-        with client_futures_lock:
-            if client_futures:
-                wait(client_futures, timeout=5.0)
+                    future = executor.submit(handle_client, conn, addr)
+                    with client_futures_lock:
+                        client_futures.add(future)
 
-    logger.info('Server wurde sauber beendet.')
+            logger.info('Warte auf aktive Client-Verbindungen...')
+            cleanup_futures()
+            with client_futures_lock:
+                if client_futures:
+                    wait(client_futures, timeout=5.0)
+
+        logger.info('Server wurde sauber beendet.')
+        aria_speak("Aria Core beendet.", profile=VoiceProfile.SUCCESS)
+        
+    except Exception as system_error:
+        logger.exception('Kritischer Systemfehler: %s', system_error)
+        aria_speak("Kritischer Systemfehler. Überprüfe das Terminal.", profile=VoiceProfile.CRITICAL, force=True)
+        raise
 
 
 def parse_args(args=None):
@@ -149,10 +177,15 @@ if __name__ == '__main__':
     args = parse_args()
     configure_logging(args.log_file)
     signal.signal(signal.SIGINT, handle_shutdown)
+    
+    # Initialize Voice Notifier with default profiles
+    initialize_notifier(enabled=True)
+    
     # Validate TLS configuration: either both cert and key, or none
     ssl_ctx = None
     if (args.tls_cert and not args.tls_key) or (args.tls_key and not args.tls_cert):
         logger.error('TLS configuration invalid: both --tls-cert and --tls-key must be provided together (or neither).')
+        aria_speak("Fehler in der TLS-Konfiguration.", profile=VoiceProfile.CRITICAL)
         raise SystemExit(2)
 
     if args.tls_cert and args.tls_key:
@@ -160,14 +193,18 @@ if __name__ == '__main__':
             ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
             ssl_ctx.load_cert_chain(certfile=args.tls_cert, keyfile=args.tls_key)
             logger.info('TLS aktiviert mit Zertifikat: %s', args.tls_cert)
+            aria_speak("TLS-Sicherheit aktiviert.", profile=VoiceProfile.INFO)
         except Exception:
             logger.exception('Fehler beim Laden des TLS-Zertifikats/Schlüssels.')
+            aria_speak("Fehler beim Laden des TLS-Zertifikats.", profile=VoiceProfile.CRITICAL)
             raise
 
     try:
         run_server(args.host, args.port, args.max_clients, ssl_context=ssl_ctx)
     except Exception:
         logger.exception('Unbehandelter Fehler im Server.')
+        aria_speak("Kritischer Systemfehler. Überprüfe das Terminal.", profile=VoiceProfile.CRITICAL)
     finally:
         shutdown_event.set()
         logger.info('Aria Live-Core gestoppt.')
+        aria_speak("Aria wird heruntergefahren.", profile=VoiceProfile.SUCCESS)
