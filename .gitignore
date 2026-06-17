@@ -1,0 +1,6 @@
+.certs
+certs/
+certs/*.key
+certs/*.crt
+certs/openssl.cnf
+logs/

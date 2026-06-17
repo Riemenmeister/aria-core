@@ -1,0 +1,11 @@
+2026-06-17 18:30:18 [INFO] =========================================
+2026-06-17 18:30:18 [INFO]  Guts&Gigaflopps - Aria Live-Core Aktiv 
+2026-06-17 18:30:18 [INFO] =========================================
+2026-06-17 18:30:18 [INFO] Lausche auf Port 22222... Warte auf Werkbank-Kopplung.
+2026-06-17 18:30:20 [INFO] Live-Kopplung mit Gerät hergestellt: ('127.0.0.1', 52786)
+2026-06-17 18:30:20 [INFO] Live-Sensor-Stream [('127.0.0.1', 52786)]: Test message from smoke client
+
+2026-06-17 18:30:20 [INFO] Verbindung vom Client getrennt: ('127.0.0.1', 52786)
+2026-06-17 18:30:20 [INFO] Client-Handler beendet: ('127.0.0.1', 52786)
+2026-06-17 18:30:21 [INFO] Warte auf aktive Client-Verbindungen...
+2026-06-17 18:30:21 [INFO] Server wurde sauber beendet.

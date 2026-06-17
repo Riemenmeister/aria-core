@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  aria-listener:
+    build: .
+    ports:
+      - "65432:65432"
+    environment:
+      - ARIA_HOST=0.0.0.0
+      - ARIA_PORT=65432
+      - ARIA_MAX_CLIENTS=10
+      - ARIA_LOG_FILE=/var/log/aria_listener.log
+      # Optional TLS: set these to enable TLS inside the container
+      - ARIA_TLS_CERT=/certs/aria.crt
+      - ARIA_TLS_KEY=/certs/aria.key
+    volumes:
+      - ./logs:/var/log
+      # Optional: mount a host certs directory containing server.crt and server.key
+      - ./certs:/certs:ro
+    restart: 'no'
+
+  smoke-test:
+    image: python:3.11-slim
+    depends_on:
+      - aria-listener
+    entrypoint: ["python", "-c"]
+    command: ["import socket,time; time.sleep(1); s=socket.create_connection(('aria-listener',65432),5); s.sendall(b'Compose smoke test message\\n'); s.close(); print('smoke test sent')"]
+    restart: 'no'

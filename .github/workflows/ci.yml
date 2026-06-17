@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run plaintext smoke test
+        run: python tests/smoke_test.py
+
+      - name: Ensure OpenSSL (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssl
+
+      - name: Run TLS smoke test
+        run: python tests/tls_smoke_test.py
+
+  smoke-test-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ['3.11']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path 'requirements.txt') { pip install -r requirements.txt }
+
+      - name: Windows service dry-run (parse + render commands)
+        shell: pwsh
+        run: |
+          Write-Host 'Running Windows service dry-run helper (no install)'
+          $script = Join-Path $env:GITHUB_WORKSPACE 'windows\install_service.ps1'
+          $python = (Get-Command python -ErrorAction SilentlyContinue).Path
+          if (-not $python) { Write-Host 'python not found on PATH' ; exit 2 }
+          & $script -ServiceName 'AriaListenerCI' -PythonPath $python -ScriptPath (Join-Path $env:GITHUB_WORKSPACE 'aria_listener.py') -Host '127.0.0.1' -Port 65432 -LogFile (Join-Path $env:GITHUB_WORKSPACE 'logs\aria_ci.log') -TlsCert (Join-Path $env:GITHUB_WORKSPACE 'certs\server.crt') -TlsKey (Join-Path $env:GITHUB_WORKSPACE 'certs\server.key')
+
+      - name: Run plaintext smoke test (Windows)
+        run: python tests/smoke_test.py
