@@ -92,7 +92,7 @@ Examples (PowerShell):
 
 ```powershell
 # Preview commands (no install)
-.\windows\install_service.ps1 -ServiceName AriaListener -PythonPath "C:\Python311\python.exe" -ScriptPath "C:\AriaCore\aria_listener.py" -Host 0.0.0.0 -Port 65432 -LogFile "C:\AriaCore\logs\aria.log"
+.\windows\install_service.ps1 -ServiceName AriaListener -PythonPath "C:\Python311\python.exe" -ScriptPath "C:\AriaCore\aria_listener.py" -ListenHost 0.0.0.0 -Port 65432 -LogFile "C:\AriaCore\logs\aria.log"
 
 # Install the service (runs NSSM commands)
 .\windows\install_service.ps1 -ServiceName AriaListener -PythonPath "C:\Python311\python.exe" -ScriptPath "C:\AriaCore\aria_listener.py" -LogFile "C:\AriaCore\logs\aria.log" -Install

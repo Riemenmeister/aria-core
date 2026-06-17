@@ -2,7 +2,8 @@ param(
     [string]$ServiceName = 'AriaListener',
     [string]$PythonPath = '',
     [string]$ScriptPath = '',
-    [string]$Host = '0.0.0.0',
+    [Alias('Host')]
+    [string]$ListenHost = '0.0.0.0',
     [int]$Port = 65432,
     [string]$LogFile = "$PSScriptRoot\..\logs\aria_listener.log",
     [string]$TlsCert = '',
@@ -30,7 +31,7 @@ if ([string]::IsNullOrWhiteSpace($ScriptPath)) {
 Write-Host "ServiceName: $ServiceName"
 Write-Host "PythonPath: $PythonPath"
 Write-Host "ScriptPath: $ScriptPath"
-Write-Host "Host: $Host"
+Write-Host "ListenHost: $ListenHost"
 Write-Host "Port: $Port"
 Write-Host "LogFile: $LogFile"
 if ($TlsCert -and $TlsKey) { Write-Host "TLS: enabled (cert: $TlsCert, key: $TlsKey)" } else { Write-Host "TLS: disabled" }
@@ -55,26 +56,33 @@ if (-not $nssm) {
 if (-not $nssm) {
     Write-Host "Warning: nssm.exe not found on PATH or common locations." -ForegroundColor Yellow
     Write-Host "Please install NSSM (https://nssm.cc/) and ensure 'nssm' is on PATH to use install/uninstall features." -ForegroundColor Yellow
+    $nssmPath = "nssm"
 }
 else {
-    Write-Host "Using NSSM: $($nssm.Path)" -ForegroundColor Green
+    if ($nssm -is [string]) {
+        $nssmPath = $nssm
+    }
+    else {
+        $nssmPath = $nssm.Path
+    }
+    Write-Host "Using NSSM: $nssmPath" -ForegroundColor Green
 }
 
 # Build App parameters
-$appArgs = "--host $Host --port $Port --log-file `"$LogFile`""
+$appArgs = "--host $ListenHost --port $Port --log-file `"$LogFile`""
 if ($TlsCert -and $TlsKey) {
     $appArgs += " --tls-cert `"$TlsCert`" --tls-key `"$TlsKey`""
 }
 
 # NSSM commands to print/execute
-$installCmd = "& `"$($nssm.Path)`" install $ServiceName `"$PythonPath`" `"$ScriptPath`" $appArgs"
-$setAppDir = "& `"$($nssm.Path)`" set $ServiceName AppDirectory `"$(Split-Path -Parent $ScriptPath)`""
-$setStdout = "& `"$($nssm.Path)`" set $ServiceName AppStdout `"$LogFile`""
-$setStderr = "& `"$($nssm.Path)`" set $ServiceName AppStderr `"$LogFile`""
-$setStart = "& `"$($nssm.Path)`" set $ServiceName Start SERVICE_AUTO_START"
-$startCmd = "& `"$($nssm.Path)`" start $ServiceName"
-$stopCmd = "& `"$($nssm.Path)`" stop $ServiceName"
-$removeCmd = "& `"$($nssm.Path)`" remove $ServiceName confirm"
+$installCmd = "& `"$nssmPath`" install $ServiceName `"$PythonPath`" `"$ScriptPath`" $appArgs"
+$setAppDir = "& `"$nssmPath`" set $ServiceName AppDirectory `"$(Split-Path -Parent $ScriptPath)`""
+$setStdout = "& `"$nssmPath`" set $ServiceName AppStdout `"$LogFile`""
+$setStderr = "& `"$nssmPath`" set $ServiceName AppStderr `"$LogFile`""
+$setStart = "& `"$nssmPath`" set $ServiceName Start SERVICE_AUTO_START"
+$startCmd = "& `"$nssmPath`" start $ServiceName"
+$stopCmd = "& `"$nssmPath`" stop $ServiceName"
+$removeCmd = "& `"$nssmPath`" remove $ServiceName confirm"
 
 Write-Heading "Planned NSSM commands"
 Write-Host $installCmd
