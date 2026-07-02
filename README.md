@@ -121,6 +121,11 @@ Notes
 - `aria_listener.py` uses only Python standard library modules.
 - The listener writes logs to both console and the configured log file.
 
+AEGIS Architecture Notes
+------------------------
+
+The AEGIS drone concept is documented as a safe split-brain architecture in docs/aegis_split_brain_architecture.md. Aria Core can act as the cognitive/mission layer, while real-time stabilization must remain on a dedicated flight controller.
+
 Aria Knowledge Bridge
 ---------------------
 
@@ -263,4 +268,3 @@ If you prefer the files named `server.crt`/`server.key`, copy or rename them ins
 ### Verified
 - CI passed before tagging.
 - Local listener startup, repeated disconnects, and critical bind-error paths were tested.
-

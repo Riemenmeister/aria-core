@@ -6,7 +6,9 @@ from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
+import aria_events
 import aria_knowledge
+from aria_events import EventType
 
 
 class FakeResponse:
@@ -24,6 +26,9 @@ class FakeResponse:
 
 
 def test_wikipedia_summary_uses_rest_payload():
+    aria_events.reset()
+    received = []
+    aria_events.subscribe(EventType.KNOWLEDGE_QUERIED, received.append)
     payload = {
         "title": "Aria",
         "description": "Test entry",
@@ -37,9 +42,41 @@ def test_wikipedia_summary_uses_rest_payload():
     assert summary["description"] == "Test entry"
     assert summary["extract"] == "A short summary."
     assert summary["url"] == "https://example.test/wiki/Aria"
+    assert len(received) == 1
+    assert received[0].event_type == EventType.KNOWLEDGE_QUERIED
+    assert received[0].payload["source"] == "wikipedia"
+    assert received[0].payload["action"] == "summary"
+    assert received[0].payload["title"] == "Aria"
+
+
+def test_wikipedia_search_publishes_event():
+    aria_events.reset()
+    received = []
+    aria_events.subscribe(EventType.KNOWLEDGE_QUERIED, received.append)
+    payload = {
+        "pages": [
+            {
+                "title": "TCP",
+                "description": "Protocol",
+                "excerpt": "Transmission Control Protocol",
+                "key": "TCP",
+            }
+        ]
+    }
+    with mock.patch("urllib.request.urlopen", return_value=FakeResponse(payload)):
+        results = aria_knowledge.WikipediaClient(language="en").search("TCP", limit=1)
+
+    assert len(results) == 1
+    assert results[0]["title"] == "TCP"
+    assert len(received) == 1
+    assert received[0].payload["action"] == "search"
+    assert received[0].payload["result_count"] == 1
 
 
 def test_mentor_memory_round_trip():
+    aria_events.reset()
+    received = []
+    aria_events.subscribe(EventType.MENTOR_OBSERVED, received.append)
     with tempfile.TemporaryDirectory() as temp_dir:
         memory_file = os.path.join(temp_dir, "mentor.jsonl")
         aria_knowledge.learn_from_mentor(
@@ -53,9 +90,13 @@ def test_mentor_memory_round_trip():
     assert len(rows) == 1
     assert rows[0]["source"] == "gemini"
     assert rows[0]["note"] == "Gemini empfiehlt Quellen zu vergleichen."
+    assert len(received) == 1
+    assert received[0].event_type == EventType.MENTOR_OBSERVED
+    assert received[0].payload["source"] == "gemini"
 
 
 if __name__ == "__main__":
     test_wikipedia_summary_uses_rest_payload()
+    test_wikipedia_search_publishes_event()
     test_mentor_memory_round_trip()
     print("knowledge tests: PASS")
