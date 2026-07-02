@@ -1,0 +1,8 @@
+{
+  "standort": "Aria Labor",
+  "strompreis_kwh_eur": 0.32,
+  "btc_preis_eur": 95000,
+  "network_difficulty": 126000000000000,
+  "block_reward": 3.125,
+  "aegis_piezo_harvesting_watt": 25
+}
