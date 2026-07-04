@@ -7,3 +7,5 @@ logs/
 memory/
 *.pyc
 __pycache__/
+*.vsix
+/test_aria_listener.log
