@@ -7,12 +7,8 @@ WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy application
-COPY aria_listener.py /app/aria_listener.py
-COPY aria_events.py /app/aria_events.py
-COPY aria_voice_notifier.py /app/aria_voice_notifier.py
-COPY aria_voice.py /app/aria_voice.py
-COPY aria_knowledge.py /app/aria_knowledge.py
+# Copy application modules
+COPY aria_*.py /app/
 
 # Default environment variables (overridable)
 ENV ARIA_HOST=0.0.0.0 \

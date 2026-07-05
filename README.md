@@ -121,6 +121,7 @@ Notes
 - Install dependencies with `pip install -r requirements.txt`.
 - `aria_listener.py` uses project modules (`aria_events`, `aria_voice_notifier`) and voice features depend on `pyttsx3`.
 - The listener writes logs to both console and the configured log file.
+- On Linux, actual voice output may require a system TTS backend such as `espeak-ng` or `libespeak1`.
 
 AEGIS Architecture Notes
 ------------------------
