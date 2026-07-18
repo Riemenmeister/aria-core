@@ -118,8 +118,10 @@ Notes:
 - The helper prints the NSSM commands before executing them so you can review and run them manually if preferred.
 
 Notes
-- `aria_listener.py` uses only Python standard library modules.
+- Install dependencies with `pip install -r requirements.txt`.
+- `aria_listener.py` uses project modules (`aria_events`, `aria_voice_notifier`) and voice features depend on `pyttsx3`.
 - The listener writes logs to both console and the configured log file.
+- On Linux, actual voice output may require a system TTS backend such as `espeak-ng` or `libespeak1`.
 
 AEGIS Architecture Notes
 ------------------------
@@ -170,6 +172,12 @@ Build the Docker image (from workspace root):
 
 ```bash
 docker build -t aria_listener:local .
+```
+
+For local execution outside Docker, install dependencies first:
+
+```bash
+pip install -r requirements.txt
 ```
 
 Run the container and publish the listener port:
