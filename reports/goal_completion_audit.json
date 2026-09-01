@@ -1,0 +1,45 @@
+{
+  "last_updated": "2026-09-01T15:00:00Z",
+  "overall_status": "incomplete",
+  "blockers": [
+    "github_remote_publishing_unverified",
+    "vercel_cli_deployment_unverified",
+    "circleback_meeting_artifact_missing",
+    "close_connector_invalid_argument",
+    "device_mesh_live_check_pending"
+  ],
+  "integrations": {
+    "airtable": {
+      "status": "pending_approval",
+      "receipt": "reports/airtable_receipt.json"
+    },
+    "notion": {
+      "status": "pending_approval",
+      "receipt": "reports/notion_receipt.json"
+    },
+    "heygen": {
+      "status": "complete",
+      "receipt": "reports/heygen_receipt.json"
+    },
+    "circleback": {
+      "status": "blocked",
+      "receipt": "reports/circleback_receipt.json"
+    },
+    "slack": {
+      "status": "pending_approval",
+      "receipt": "reports/slack_receipt.json"
+    },
+    "actively": {
+      "status": "waived",
+      "receipt": "reports/actively_receipt.json"
+    },
+    "close": {
+      "status": "blocked",
+      "receipt": "reports/close_receipt.json"
+    }
+  },
+  "device_mesh": {
+    "status": "configured_pending_live_check",
+    "receipt": "reports/device_mesh_client_checklist.json"
+  }
+}
