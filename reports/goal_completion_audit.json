@@ -1,0 +1,37 @@
+{
+  "last_updated": "2026-09-01T15:00:00Z",
+  "overall_status": "incomplete",
+  "blockers": [
+    "github_remote_publishing_unverified",
+    "vercel_cli_deployment_unverified",
+    "circleback_meeting_artifact_missing",
+    "close_connector_invalid_argument",
+    "device_mesh_live_check_pending"
+  ],
+  "integrations": {
+    "airtable": {
+      "status": "pending_approval"
+    },
+    "notion": {
+      "status": "pending_approval"
+    },
+    "heygen": {
+      "status": "complete"
+    },
+    "circleback": {
+      "status": "blocked"
+    },
+    "slack": {
+      "status": "pending_approval"
+    },
+    "actively": {
+      "status": "waived"
+    },
+    "close": {
+      "status": "blocked"
+    }
+  },
+  "device_mesh": {
+    "status": "configured_pending_live_check"
+  }
+}
