@@ -48,6 +48,19 @@ def calculate_profitability(config_path: str | Path, csv_path: str | Path) -> pd
     if config is None:
         return None
 
+    required_keys = {
+        "standort",
+        "strompreis_kwh_eur",
+        "btc_preis_eur",
+        "network_difficulty",
+        "block_reward",
+        "aegis_piezo_harvesting_watt",
+    }
+    missing_keys = required_keys - set(config)
+    if missing_keys:
+        print(f"[FEHLER] {config_path} fehlt Pflichtfeld(er): {', '.join(sorted(missing_keys))}")
+        return None
+
     live_btc_price, live_difficulty = fetch_live_data()
     btc_price_eur = live_btc_price if live_btc_price is not None else float(config["btc_preis_eur"])
     difficulty = live_difficulty if live_difficulty is not None else float(config["network_difficulty"])
