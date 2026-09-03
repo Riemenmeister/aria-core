@@ -105,7 +105,7 @@ class VoiceNotifier:
     def add_profile(self, profile_enum: VoiceProfile, config: VoiceProfileConfig) -> None:
         """Add or update a voice profile."""
         self.profiles[profile_enum] = config
-        logger.info('VoiceProfile "%s" hinzugefügt: rate=%d, volume=%.1f, cooldown=%d',
+        logger.info('VoiceProfile "%s" hinzugefuegt: rate=%d, volume=%.1f, cooldown=%d',
                     config.name, config.rate, config.volume, config.cooldown)
     
     def speak(self, text: str, profile: VoiceProfile = VoiceProfile.INFO, force: bool = False) -> bool:
@@ -139,7 +139,7 @@ class VoiceNotifier:
         # Check rate-limit
         if not force and time_since_last < config.cooldown:
             logger.debug(
-                '[RATE-LIMITED] [%s]: "%s" (%.1fs bis zur nächsten Ausgabe)',
+                '[RATE-LIMITED] [%s]: "%s" (%.1fs bis zur naechsten Ausgabe)',
                 config.name,
                 text,
                 config.cooldown - time_since_last
@@ -168,18 +168,18 @@ class VoiceNotifier:
         """
         if text is None and profile is None:
             self.last_message_time.clear()
-            logger.info('Alle Cooldown-Timer zurückgesetzt.')
+            logger.info('Alle Cooldown-Timer zurueckgesetzt.')
         elif text is not None and profile is not None:
             cache_key = f"{profile.value}:{text}"
             if cache_key in self.last_message_time:
                 del self.last_message_time[cache_key]
-                logger.info('Cooldown für "%s" [%s] zurückgesetzt.', text, profile.value)
+                logger.info('Cooldown fuer "%s" [%s] zurueckgesetzt.', text, profile.value)
         elif profile is not None:
             prefix = f"{profile.value}:"
             keys_to_delete = [k for k in self.last_message_time if k.startswith(prefix)]
             for key in keys_to_delete:
                 del self.last_message_time[key]
-            logger.info('Alle Cooldowns für Profil "%s" zurückgesetzt.', profile.value)
+            logger.info('Alle Cooldowns fuer Profil "%s" zurueckgesetzt.', profile.value)
         else:
             logger.warning('reset_cooldown: Mindestens text oder profile erforderlich.')
     
@@ -189,7 +189,7 @@ class VoiceNotifier:
             logger.warning('Unbekanntes VoiceProfile: %s', profile)
             return
         self.profiles[profile].cooldown = max(1, cooldown_seconds)
-        logger.info('Cooldown für Profil "%s" auf %d Sekunden aktualisiert.', profile.value, cooldown_seconds)
+        logger.info('Cooldown fuer Profil "%s" auf %d Sekunden aktualisiert.', profile.value, cooldown_seconds)
     
     def set_profile_settings(self, profile: VoiceProfile, rate: Optional[int] = None,
                             volume: Optional[float] = None) -> None:
@@ -253,6 +253,8 @@ def _event_to_voice_profile(event_type: EventType) -> VoiceProfile:
         EventType.CLIENT_DISCONNECTED: VoiceProfile.INFO,
         EventType.STREAM_ERROR: VoiceProfile.WARNING,
         EventType.CRITICAL_ERROR: VoiceProfile.CRITICAL,
+        EventType.KNOWLEDGE_QUERIED: VoiceProfile.INFO,
+        EventType.MENTOR_OBSERVED: VoiceProfile.INFO,
     }.get(event_type, VoiceProfile.INFO)
 
 
@@ -269,3 +271,5 @@ subscribe(EventType.CLIENT_CONNECTED, _handle_aria_event)
 subscribe(EventType.CLIENT_DISCONNECTED, _handle_aria_event)
 subscribe(EventType.STREAM_ERROR, _handle_aria_event)
 subscribe(EventType.CRITICAL_ERROR, _handle_aria_event)
+subscribe(EventType.KNOWLEDGE_QUERIED, _handle_aria_event)
+subscribe(EventType.MENTOR_OBSERVED, _handle_aria_event)

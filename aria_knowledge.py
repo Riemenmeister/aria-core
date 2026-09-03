@@ -8,6 +8,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
+from aria_events import AriaEvent, EventType, publish
+
 
 DEFAULT_LANGUAGE = os.environ.get("ARIA_WIKI_LANG", "de")
 DEFAULT_MEMORY_FILE = os.environ.get(
@@ -37,19 +39,29 @@ class WikipediaClient:
         encoded_title = urllib.parse.quote(title.replace(" ", "_"), safe="")
         url = f"{self.api_base}/page/summary/{encoded_title}"
         data = self._get_json(url)
-        return {
+        summary = {
             "title": data.get("title", title),
             "description": data.get("description", ""),
             "extract": data.get("extract", ""),
             "url": data.get("content_urls", {}).get("desktop", {}).get("page", ""),
         }
+        publish(AriaEvent(event_type=EventType.KNOWLEDGE_QUERIED, payload={
+            "source": "wikipedia",
+            "action": "summary",
+            "language": self.language,
+            "query": title,
+            "title": summary["title"],
+            "url": summary["url"],
+            "message": f"Wikipedia summary loaded: {summary['title']}",
+        }))
+        return summary
 
     def search(self, query, limit=5):
         params = urllib.parse.urlencode({"q": query, "limit": limit})
         url = f"{self.search_base}/search/page?{params}"
         data = self._get_json(url)
         pages = data.get("pages", [])
-        return [
+        results = [
             {
                 "title": page.get("title", ""),
                 "description": page.get("description", ""),
@@ -59,6 +71,15 @@ class WikipediaClient:
             }
             for page in pages
         ]
+        publish(AriaEvent(event_type=EventType.KNOWLEDGE_QUERIED, payload={
+            "source": "wikipedia",
+            "action": "search",
+            "language": self.language,
+            "query": query,
+            "result_count": len(results),
+            "message": f"Wikipedia search completed: {query}",
+        }))
+        return results
 
     def _get_json(self, url):
         request = urllib.request.Request(
@@ -81,6 +102,11 @@ def learn_from_mentor(note, source="gemini", memory_file=DEFAULT_MEMORY_FILE):
     }
     with open(memory_file, "a", encoding="utf-8") as handle:
         handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    publish(AriaEvent(event_type=EventType.MENTOR_OBSERVED, payload={
+        "source": source,
+        "memory_file": memory_file,
+        "message": f"Mentor observation stored: {source}",
+    }))
     return entry
 
 

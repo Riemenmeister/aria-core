@@ -78,6 +78,8 @@ class VoiceNotifierEventMappingTests(unittest.TestCase):
             EventType.CLIENT_DISCONNECTED: VoiceProfile.INFO,
             EventType.STREAM_ERROR: VoiceProfile.WARNING,
             EventType.CRITICAL_ERROR: VoiceProfile.CRITICAL,
+            EventType.KNOWLEDGE_QUERIED: VoiceProfile.INFO,
+            EventType.MENTOR_OBSERVED: VoiceProfile.INFO,
         }
 
         for event_type, expected_profile in expected.items():

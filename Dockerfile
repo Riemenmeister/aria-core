@@ -3,9 +3,12 @@ FROM python:3.11-slim
 # Create app dir
 WORKDIR /app
 
-# Install only what we need (none external for now)
-# Copy application
-COPY aria_listener.py /app/aria_listener.py
+# Install Python dependencies
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Copy application modules
+COPY aria_*.py /app/
 
 # Default environment variables (overridable)
 ENV ARIA_HOST=0.0.0.0 \
